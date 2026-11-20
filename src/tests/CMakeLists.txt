@@ -1,5 +1,6 @@
 add_test_files(
     alternating_iterator.cpp
+    blueprint_library.cpp
     blueprint_model.cpp
     bitmath_func.cpp
     enum_over_optimisation.cpp
