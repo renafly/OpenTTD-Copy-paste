@@ -15,7 +15,9 @@
 
 #include "../safeguards.h"
 
-using namespace Blueprint;
+/* No "using namespace": MSVC finds Blueprint::Blueprint ambiguous with it. */
+using Blueprint::Item;
+using Blueprint::ItemType;
 
 static Item MakeTrack(int16_t dx, int16_t dy, TrackBits bits)
 {

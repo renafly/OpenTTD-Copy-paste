@@ -20,7 +20,10 @@
 
 #include "../safeguards.h"
 
-using namespace Blueprint;
+/* No "using namespace": MSVC finds Blueprint::Blueprint ambiguous with it. */
+using Blueprint::Item;
+using Blueprint::ItemType;
+using Blueprint::Capture;
 
 static void FlatMap()
 {

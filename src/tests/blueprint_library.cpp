@@ -21,7 +21,13 @@
 
 #include "../safeguards.h"
 
-using namespace Blueprint;
+/* No "using namespace": MSVC finds Blueprint::Blueprint ambiguous with it. */
+using Blueprint::Item;
+using Blueprint::ItemType;
+using Blueprint::ToJson;
+using Blueprint::FromJson;
+using Blueprint::SanitiseFileName;
+using Blueprint::Library;
 
 namespace {
 
