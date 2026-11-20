@@ -17,11 +17,17 @@ The copy/paste idea comes from the [CityMania client](https://github.com/cityman
 
   If the patch doesn't apply cleanly, it opens an issue instead.
 
+  Pull requests to `main` get the same Windows build and tests, without a release. To build a release by hand, go to **Actions → Blueprint release → Run workflow**. Leave the version empty to build the newest release, or enter one such as `15.3`.
+
 ## Install (Windows)
 
 1. Download `openttd-blueprint-<version>-windows-win64.zip` from the latest release.
 2. Extract it to its own folder, for example `C:\Games\OpenTTD-Blueprint\`. **Don't** put it in Steam's OpenTTD folder, because Steam overwrites that folder on every update.
 3. Run `openttd.exe`.
+4. **Graphics, sounds and music.** These aren't in the zip. On first start the game offers to download the free graphics set. To get the same graphics, sounds and music as Steam, copy these from `C:\Program Files (x86)\Steam\steamapps\common\OpenTTD\baseset\` into `Documents\OpenTTD\baseset\`:
+   - `OpenGFX2_Classic-*.tar`
+   - the `opensfx-*` folder
+   - the `openmsx-*` folder
 
 The patched game uses the same `Documents\OpenTTD` folder as Steam: same saves, settings, downloaded content and templates.
 
