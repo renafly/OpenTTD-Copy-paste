@@ -1,0 +1,263 @@
+name: Blueprint release
+
+# Builds "official OpenTTD + blueprint tool" for every new official release.
+# 1. detect:  find the newest stable OpenTTD tag without a blueprint-<tag> release.
+# 2. port:    replay this repo's commits (everything after the 15.3 import) onto that tag.
+# 3. windows: build Windows x64, run the unit tests, package a zip.
+# 4. release: publish the zip as GitHub release blueprint-<tag>.
+# Pull requests run steps 1 and 3 only (build check of the PR, no release).
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+  - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'OpenTTD version to build (e.g. 15.3). Empty = newest stable release.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: blueprint-release
+  cancel-in-progress: false
+
+env:
+  UPSTREAM: https://github.com/OpenTTD/OpenTTD.git
+  # Subject of the commit that imported the unmodified upstream source this patch is based on.
+  IMPORT_SUBJECT: 'chore: import OpenTTD 15.3 source'
+  IMPORT_VERSION: '15.3'
+
+jobs:
+  detect:
+    name: Detect version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      upstream_hash: ${{ steps.version.outputs.upstream_hash }}
+      build: ${{ steps.exists.outputs.build }}
+    steps:
+    - name: Find version
+      id: version
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.version }}"
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          VERSION="${IMPORT_VERSION}"
+        fi
+        if [ -z "${VERSION}" ]; then
+          # Stable tags look like "15.3"; skip betas and release candidates.
+          VERSION=$(git ls-remote --tags --refs "${UPSTREAM}" | sed 's|.*refs/tags/||' | grep -E '^[0-9]+\.[0-9]+$' | sort -V | tail -1)
+        fi
+        # Peeled hash of the tag (annotated tags list a ^{} line).
+        HASH=$(git ls-remote --tags "${UPSTREAM}" "refs/tags/${VERSION}^{}" "refs/tags/${VERSION}" | head -1 | cut -f1)
+        if [ -z "${HASH}" ]; then
+          echo "::error::Tag ${VERSION} not found upstream"
+          exit 1
+        fi
+        echo "Version: ${VERSION} (${HASH})"
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "upstream_hash=${HASH}" >> "$GITHUB_OUTPUT"
+
+    - name: Check for an existing release
+      id: exists
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "build=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if gh release view "blueprint-${{ steps.version.outputs.version }}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+          echo "Release blueprint-${{ steps.version.outputs.version }} already exists; nothing to do."
+          echo "build=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "build=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  port:
+    name: Port patch to ${{ needs.detect.outputs.version }}
+    needs: detect
+    if: needs.detect.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.port.outputs.ref }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Replay patch onto upstream tag
+      id: port
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ needs.detect.outputs.version }}
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "Pull request: building its head as is."
+          echo "ref=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ "${VERSION}" = "${IMPORT_VERSION}" ]; then
+          echo "Same version as the import; building main as is."
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        BASE=$(git log --format=%H --fixed-strings --grep="${IMPORT_SUBJECT}" main | tail -1)
+        if [ -z "${BASE}" ]; then
+          echo "::error::Import commit '${IMPORT_SUBJECT}' not found on main"
+          exit 1
+        fi
+
+        git fetch --depth 1 "${UPSTREAM}" "refs/tags/${VERSION}:refs/tags/upstream-${VERSION}"
+        BRANCH="blueprint/${VERSION}"
+        git checkout -B "${BRANCH}" "upstream-${VERSION}"
+
+        if ! git format-patch --stdout "${BASE}..main" | git am -3; then
+          FAILED=$(head -1 .git/rebase-apply/final-commit 2>/dev/null || true)
+          git am --abort || true
+          TITLE="Port to OpenTTD ${VERSION} needs a manual fix"
+          if ! gh issue list --repo "${{ github.repository }}" --state open --search "${TITLE} in:title" --json number --jq '.[].number' | grep -q .; then
+            gh issue create --repo "${{ github.repository }}" --title "${TITLE}" --body "The blueprint patch does not apply cleanly onto OpenTTD tag \`${VERSION}\`.
+
+        First failing commit: \`${FAILED:-unknown}\`
+
+        Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          echo "::error::Patch does not apply onto ${VERSION} (failing commit: ${FAILED:-unknown})"
+          exit 1
+        fi
+
+        git push --force origin "${BRANCH}"
+        echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  windows:
+    name: Windows x64
+    needs: [detect, port]
+    runs-on: windows-latest
+    steps:
+    - name: Checkout ported source
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.port.outputs.ref }}
+
+    - name: Pin version to the official release
+      shell: bash
+      env:
+        VERSION: ${{ needs.detect.outputs.version }}
+        HASH: ${{ needs.detect.outputs.upstream_hash }}
+      run: |
+        # Without .git, CMake reads .ottdrev. Reporting the plain release
+        # version keeps the build network compatible with official servers.
+        rm -rf .git
+        printf '%s\t%s\t0\t%s\t1\t1\n' "${VERSION}" "$(date -u +%Y%m%d)" "${HASH}" > .ottdrev
+        cat .ottdrev
+
+    - name: Skip breakpad
+      shell: bash
+      run: |
+        # breakpad (optional minidump support) at the vcpkg baseline pinned by
+        # 15.3 does not compile with the MSVC on current windows-latest runners
+        # (stdext::checked_array_iterator was removed). Plain crash logs still work.
+        jq 'del(.dependencies[] | select(type == "object" and .name == "breakpad"))' vcpkg.json > vcpkg.json.new
+        mv vcpkg.json.new vcpkg.json
+        grep -c breakpad vcpkg.json || true
+
+    - name: Setup vcpkg
+      id: vcpkg
+      uses: OpenTTD/actions/setup-vcpkg@v6
+
+    - name: Install dependencies
+      shell: bash
+      run: choco install pandoc
+
+    - name: Install MSVC problem matcher
+      uses: ammaraskar/msvc-problem-matcher@master
+
+    - name: Configure developer command prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Build
+      shell: bash
+      run: |
+        mkdir build
+        cd build
+        echo "::group::CMake"
+        cmake ${GITHUB_WORKSPACE} \
+          -GNinja \
+          -DVCPKG_TARGET_TRIPLET=x64-windows-static \
+          -DCMAKE_TOOLCHAIN_FILE="${{ steps.vcpkg.outputs.vcpkg-cmake }}" \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          # EOF
+        echo "::endgroup::"
+        echo "::group::Build"
+        cmake --build . --target openttd openttd_test
+        echo "::endgroup::"
+
+    - name: Unit tests
+      shell: bash
+      run: |
+        cd build
+        ./openttd_test.exe
+
+    - name: Package
+      shell: bash
+      env:
+        VERSION: ${{ needs.detect.outputs.version }}
+      run: |
+        cd build
+        cpack -G ZIP
+        mkdir -p ../dist
+        ZIP=$(ls bundles/*.zip | head -1)
+        cp "${ZIP}" "../dist/openttd-blueprint-${VERSION}-windows-win64.zip"
+        ls -l ../dist
+
+    - name: Store package
+      uses: actions/upload-artifact@v4
+      with:
+        name: openttd-blueprint-windows-x64
+        path: dist
+        retention-days: 5
+
+  release:
+    name: Publish release
+    needs: [detect, port, windows]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download package
+      uses: actions/download-artifact@v4
+      with:
+        name: openttd-blueprint-windows-x64
+        path: dist
+
+    - name: Create release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ needs.detect.outputs.version }}
+      run: |
+        gh release create "blueprint-${VERSION}" dist/*.zip \
+          --repo "${{ github.repository }}" \
+          --target "${{ needs.port.outputs.ref }}" \
+          --title "OpenTTD ${VERSION} + rail blueprint tool" \
+          --notes "Official OpenTTD ${VERSION} with the rail blueprint (copy/paste) tool.
+
+        Install: extract the zip to its own folder (not Steam's OpenTTD folder) and run openttd.exe. It shares Documents\\OpenTTD (saves, settings, templates) with your Steam install. See README.blueprint.md for details."

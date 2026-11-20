@@ -1,0 +1,14 @@
+add_files(
+    blueprint.cpp
+    blueprint.h
+    blueprint_capture.cpp
+    blueprint_capture.h
+    blueprint_exec.cpp
+    blueprint_exec.h
+    blueprint_gui.cpp
+    blueprint_gui.h
+    blueprint_library.cpp
+    blueprint_library.h
+    blueprint_plan.cpp
+    blueprint_plan.h
+)

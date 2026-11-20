@@ -47,6 +47,7 @@
 #include "tunnelbridge_map.h"
 
 #include "widgets/rail_widget.h"
+#include "blueprint/blueprint_gui.h"
 
 #include "table/strings.h"
 
@@ -54,6 +55,15 @@
 
 
 static RailType _cur_railtype;               ///< Rail type of the current build-rail toolbar.
+
+/** @return The rail type of the current build-rail toolbar, for the blueprint tool. */
+RailType GetRailToolbarRailType()
+{
+	return _cur_railtype;
+}
+
+/** First hotkey number of the "place blueprint N" hotkeys; beyond all widget numbers. */
+static constexpr int HOTKEY_BLUEPRINT_PLACE = 0x1000;
 static bool _remove_button_clicked;          ///< Flag whether 'remove' toggle-button is currently enabled
 static DiagDirection _build_depot_direction; ///< Currently selected depot direction
 static bool _convert_signal_button;          ///< convert signal button in the signal GUI pressed
@@ -649,6 +659,10 @@ struct BuildRailToolbarWindow : Window {
 				this->last_user_action = widget;
 				break;
 
+			case WID_RAT_BLUEPRINT:
+				Blueprint::ShowLibraryWindow();
+				break;
+
 			default: NOT_REACHED();
 		}
 		this->UpdateRemoveWidgetStatus(widget);
@@ -658,6 +672,10 @@ struct BuildRailToolbarWindow : Window {
 	EventState OnHotkey(int hotkey) override
 	{
 		MarkTileDirtyByTile(TileVirtXY(_thd.pos.x, _thd.pos.y)); // redraw tile selection
+		if (hotkey >= HOTKEY_BLUEPRINT_PLACE && hotkey < HOTKEY_BLUEPRINT_PLACE + Blueprint::NUM_PLACE_HOTKEYS) {
+			Blueprint::StartPlacement(hotkey - HOTKEY_BLUEPRINT_PLACE);
+			return ES_HANDLED;
+		}
 		return Window::OnHotkey(hotkey);
 	}
 
@@ -859,6 +877,17 @@ struct BuildRailToolbarWindow : Window {
 		Hotkey('T', "tunnel", WID_RAT_BUILD_TUNNEL),
 		Hotkey('R', "remove", WID_RAT_REMOVE),
 		Hotkey('C', "convert", WID_RAT_CONVERT_RAIL),
+		Hotkey((uint16_t)0, "blueprint", WID_RAT_BLUEPRINT),
+		Hotkey((uint16_t)0, "blueprint_place_1", HOTKEY_BLUEPRINT_PLACE + 0),
+		Hotkey((uint16_t)0, "blueprint_place_2", HOTKEY_BLUEPRINT_PLACE + 1),
+		Hotkey((uint16_t)0, "blueprint_place_3", HOTKEY_BLUEPRINT_PLACE + 2),
+		Hotkey((uint16_t)0, "blueprint_place_4", HOTKEY_BLUEPRINT_PLACE + 3),
+		Hotkey((uint16_t)0, "blueprint_place_5", HOTKEY_BLUEPRINT_PLACE + 4),
+		Hotkey((uint16_t)0, "blueprint_place_6", HOTKEY_BLUEPRINT_PLACE + 5),
+		Hotkey((uint16_t)0, "blueprint_place_7", HOTKEY_BLUEPRINT_PLACE + 6),
+		Hotkey((uint16_t)0, "blueprint_place_8", HOTKEY_BLUEPRINT_PLACE + 7),
+		Hotkey((uint16_t)0, "blueprint_place_9", HOTKEY_BLUEPRINT_PLACE + 8),
+		Hotkey((uint16_t)0, "blueprint_place_10", HOTKEY_BLUEPRINT_PLACE + 9),
 	}, RailToolbarGlobalHotkeys};
 };
 
@@ -900,6 +929,8 @@ static constexpr std::initializer_list<NWidgetPart> _nested_build_rail_widgets =
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_REMOVE, STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR),
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_RAT_CONVERT_RAIL),
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_CONVERT_RAIL, STR_RAIL_TOOLBAR_TOOLTIP_CONVERT_RAIL),
+		NWidget(WWT_PUSHIMGBTN, COLOUR_DARK_GREEN, WID_RAT_BLUEPRINT),
+						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_CLONE_TRAIN, STR_BLUEPRINT_TOOLTIP),
 	EndContainer(),
 };
 
