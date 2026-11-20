@@ -2813,8 +2813,35 @@ STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_TUNNEL                  :{BLACK}Build ra
 STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR                :{BLACK}Toggle build/remove for railway track, signals, waypoints and stations. Ctrl+Click to also remove the rail of waypoints and stations
 STR_RAIL_TOOLBAR_TOOLTIP_CONVERT_RAIL                           :{BLACK}Convert/Upgrade the type of rail. Also press Shift to show cost estimate only
 # Rail blueprint (copy/paste) tool
+STR_BLUEPRINT_TOOLTIP                                           :{BLACK}Blueprints: copy railway layouts, save them as templates and paste them anywhere
+STR_BLUEPRINT_CAPTION                                           :{WHITE}Rail Blueprints
+STR_BLUEPRINT_LIST_ITEM                                         :{BLACK}{RAW_STRING} {GRAY}{NUM}×{NUM}
+STR_BLUEPRINT_LIST_ITEM_TERRAIN                                 :{BLACK}{RAW_STRING} {GRAY}{NUM}×{NUM}, terrain
+STR_BLUEPRINT_LIST_EMPTY                                        :{GRAY}No templates yet. Click "New copy" and drag over your railway.
+STR_BLUEPRINT_LIST_TOOLTIP                                      :{BLACK}Saved templates, shared by all your games. Click to select, double-click to place
+STR_BLUEPRINT_NEW                                               :{BLACK}New copy
+STR_BLUEPRINT_NEW_TOOLTIP                                       :{BLACK}Drag a rectangle over your railway to save it as a new template
+STR_BLUEPRINT_PLACE                                             :{BLACK}Place
+STR_BLUEPRINT_PLACE_TOOLTIP                                     :{BLACK}Build the selected template. Click on the map to place it
+STR_BLUEPRINT_ROTATE                                            :{BLACK}Rotate
+STR_BLUEPRINT_ROTATE_TOOLTIP                                    :{BLACK}Turn the template 90 degrees clockwise. Hotkey: R while this window is in front
+STR_BLUEPRINT_RENAME                                            :{BLACK}Rename
+STR_BLUEPRINT_RENAME_TOOLTIP                                    :{BLACK}Rename the selected template
+STR_BLUEPRINT_DELETE                                            :{BLACK}Delete
+STR_BLUEPRINT_DELETE_TOOLTIP                                    :{BLACK}Delete the selected template file
+STR_BLUEPRINT_TERRAIN                                           :{BLACK}Include terrain
+STR_BLUEPRINT_TERRAIN_TOOLTIP                                   :{BLACK}When placing, first reshape the land to match the copied area
+STR_BLUEPRINT_QUERY_NAME                                        :{WHITE}Name for this template
+STR_BLUEPRINT_QUERY_RENAME                                      :{WHITE}Rename template
+STR_BLUEPRINT_DELETE_CAPTION                                    :{WHITE}Delete template
+STR_BLUEPRINT_DELETE_QUERY                                      :{YELLOW}Delete the template "{RAW_STRING}"? This cannot be undone.
 STR_BLUEPRINT_ERROR_PARTIAL                                     :{WHITE}Blueprint only partly built...
 STR_BLUEPRINT_ERROR_PARTIAL_DETAIL                              :{WHITE}{NUM} part{P "" s} could not be built: the spot is blocked, there is not enough money, or it is not available yet
+STR_BLUEPRINT_ERROR_EMPTY                                       :{WHITE}Nothing to copy: there is none of your railway in this area
+STR_BLUEPRINT_ERROR_SAVE                                        :{WHITE}Could not save the template file
+STR_BLUEPRINT_ERROR_BUSY                                        :{WHITE}Still building the previous blueprint...
+STR_BLUEPRINT_ERROR_NO_TEMPLATE                                 :{WHITE}There is no template number {NUM} in the blueprint list
+STR_BLUEPRINT_ERROR_TOO_LARGE                                   :{WHITE}Area too large to copy (maximum {NUM}×{NUM} tiles)
 
 STR_RAIL_NAME_RAILROAD                                          :Railway
 STR_RAIL_NAME_ELRAIL                                            :Electrified railway

@@ -732,6 +732,12 @@ enum WindowClass : uint16_t {
 	 */
 	WC_HELPWIN,
 
+	/*
+	 * Rail blueprint library window; %Window numbers:
+	 *   - 0 = #BlueprintLibraryWidgets
+	 */
+	WC_BLUEPRINT_LIBRARY,
+
 	WC_INVALID = 0xFFFF, ///< Invalid window.
 };
 
