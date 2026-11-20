@@ -168,6 +168,16 @@ jobs:
         printf '%s\t%s\t0\t%s\t1\t1\n' "${VERSION}" "$(date -u +%Y%m%d)" "${HASH}" > .ottdrev
         cat .ottdrev
 
+    - name: Skip breakpad
+      shell: bash
+      run: |
+        # breakpad (optional minidump support) at the vcpkg baseline pinned by
+        # 15.3 does not compile with the MSVC on current windows-latest runners
+        # (stdext::checked_array_iterator was removed). Plain crash logs still work.
+        jq 'del(.dependencies[] | select(type == "object" and .name == "breakpad"))' vcpkg.json > vcpkg.json.new
+        mv vcpkg.json.new vcpkg.json
+        grep -c breakpad vcpkg.json || true
+
     - name: Setup vcpkg
       id: vcpkg
       uses: OpenTTD/actions/setup-vcpkg@v6
