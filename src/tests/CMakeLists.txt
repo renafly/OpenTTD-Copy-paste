@@ -3,6 +3,7 @@ add_test_files(
     blueprint_capture.cpp
     blueprint_library.cpp
     blueprint_model.cpp
+    blueprint_plan.cpp
     bitmath_func.cpp
     enum_over_optimisation.cpp
     flatset_type.cpp
