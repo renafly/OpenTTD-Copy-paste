@@ -1,6 +1,8 @@
 add_files(
     blueprint.cpp
     blueprint.h
+    blueprint_capture.cpp
+    blueprint_capture.h
     blueprint_library.cpp
     blueprint_library.h
 )
